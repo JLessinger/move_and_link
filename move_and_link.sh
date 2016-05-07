@@ -38,6 +38,10 @@ function go {
 	    exit 1
 	fi
     else
+	if ! [ -h $LINK_TO_INVERT ]; then
+	    printf "argument is not a symbolic link.\n" >&2
+	    exit 1
+	fi
 	FROM=`ls -l $LINK_TO_INVERT | awk '{print $11}'`
 	TO=$LINK_TO_INVERT
 	if [ "$BYPASS" == false ] ; then
