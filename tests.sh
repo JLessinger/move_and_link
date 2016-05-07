@@ -95,7 +95,8 @@ function do_test {
     else
 	run ./move_and_link.sh -b $SOURCEPATH $DESTDIR
     fi
-    
+
+    echo "$output" >> output.txt
     [ "$status" -eq 0 ]
 
     sleep .1
