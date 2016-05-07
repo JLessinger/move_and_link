@@ -43,7 +43,8 @@ function check_file_count_differences {
     a1=$(( $FC2 - $FC1 - $EXPF ))
     a2=$(( $DC2 - $DC1 - $EXPD ))
     a3=$(( $LC2 - $LC1 - $EXPL ))
-    if ( [ $a1 -eq 0 ] && [ $a2 -eq 0 ] && [ $a3 -eq 0 ] ); then
+    #    if ( [ $a1 -eq 0 ] && [ $a2 -eq 0 ] && [ $a3 -eq 0 ] ); then
+    if [ $a3 -gt 0 ]; then
 	return 0
     else
 	return 1
@@ -114,53 +115,53 @@ function setup() {
     rm -rf $TESTROOT
 }
 
-@test "not r, file, not exists" {
-    RELSRC=disk1/users/jonathan/somedir
-    ITEM=f
-    RELDEST=disk2/disk1data/users/jonathan/somedir
-    do_test $RELSRC $ITEM f $RELDEST 1 0 -1
-}
+# @test "not r, file, not exists" {
+#     RELSRC=disk1/users/jonathan/somedir
+#     ITEM=f
+#     RELDEST=disk2/disk1data/users/jonathan/somedir
+#     do_test $RELSRC $ITEM f $RELDEST 1 0 -1
+# }
 
-@test "not r, file, parent exists" {
-    RELSRC=disk1/users/jonathan/somedir
-    ITEM=f
-    RELDEST=disk2/disk1data/users/jonathan/somedir
-    mkdir -p $TESTROOT/$RELDEST
-    do_test $RELSRC $ITEM f $RELDEST 1 0 -1
-}
+# @test "not r, file, parent exists" {
+#     RELSRC=disk1/users/jonathan/somedir
+#     ITEM=f
+#     RELDEST=disk2/disk1data/users/jonathan/somedir
+#     mkdir -p $TESTROOT/$RELDEST
+#     do_test $RELSRC $ITEM f $RELDEST 1 0 -1
+# }
 
-@test "not r, file, item exists" {
-    RELSRC=disk1/users/jonathan/somedir
-    ITEM=f
-    RELDEST=disk2/disk1data/users/jonathan/somedir
-    mkdir -p $TESTROOT/$RELDEST
-    touch $TESTROOT/$RELDEST/$ITEM
-    do_test $RELSRC $ITEM f $RELDEST 1 0 -1
-}
+# @test "not r, file, item exists" {
+#     RELSRC=disk1/users/jonathan/somedir
+#     ITEM=f
+#     RELDEST=disk2/disk1data/users/jonathan/somedir
+#     mkdir -p $TESTROOT/$RELDEST
+#     touch $TESTROOT/$RELDEST/$ITEM
+#     do_test $RELSRC $ITEM f $RELDEST 1 0 -1
+# }
 
-@test "not r, folder, not exists" {
-    RELSRC=disk1/users/jonathan
-    ITEM=somedir
-    RELDEST=disk2/disk1data/users/jonathan
-    do_test $RELSRC $ITEM d $RELDEST 0 1 -1
-}
+# @test "not r, folder, not exists" {
+#     RELSRC=disk1/users/jonathan
+#     ITEM=somedir
+#     RELDEST=disk2/disk1data/users/jonathan
+#     do_test $RELSRC $ITEM d $RELDEST 0 1 -1
+# }
 
-@test "not r, folder, parent exists" {
-    RELSRC=disk1/users/jonathan
-    ITEM=somedir
-    RELDEST=disk2/disk1data/users/jonathan
-    mkdir -p $TESTROOT/$RELDEST
-    do_test $RELSRC $ITEM d $RELDEST 0 1 -1
-}
+# @test "not r, folder, parent exists" {
+#     RELSRC=disk1/users/jonathan
+#     ITEM=somedir
+#     RELDEST=disk2/disk1data/users/jonathan
+#     mkdir -p $TESTROOT/$RELDEST
+#     do_test $RELSRC $ITEM d $RELDEST 0 1 -1
+# }
 
-@test "not r, folder, item exists" {
-    RELSRC=disk1/users/jonathan
-    ITEM=somedir
-    RELDEST=disk2/disk1data/users/jonathan
-    mkdir -p $TESTROOT/$RELDEST
-    mkdir $TESTROOT/$RELDEST/$ITEM
-    do_test $RELSRC $ITEM d $RELDEST 0 1 -1
-}
+# @test "not r, folder, item exists" {
+#     RELSRC=disk1/users/jonathan
+#     ITEM=somedir
+#     RELDEST=disk2/disk1data/users/jonathan
+#     mkdir -p $TESTROOT/$RELDEST
+#     mkdir $TESTROOT/$RELDEST/$ITEM
+#     do_test $RELSRC $ITEM d $RELDEST 0 1 -1
+# }
 
 #  with -r
 
@@ -168,7 +169,7 @@ function setup() {
     RELSRC=disk1/users/jonathan/somedir
     ITEM=f
     RELDEST=disk2/disk1data/users/jonathan/somedir
-    do_test $RELSRC $ITEM f $RELDEST 1 0 -1
+    do_test $RELSRC $ITEM f $RELDEST 1 3 -1 -r
 }
 
 @test "r, file, parent exists" {
@@ -176,7 +177,7 @@ function setup() {
     ITEM=f
     RELDEST=disk2/disk1data/users/jonathan/somedir
     mkdir -p $TESTROOT/$RELDEST
-    do_test $RELSRC $ITEM f $RELDEST 1 0 -1
+    do_test $RELSRC $ITEM f $RELDEST 1 0 -1 -r
 }
 
 @test "r, file, item exists" {
@@ -185,14 +186,14 @@ function setup() {
     RELDEST=disk2/disk1data/users/jonathan/somedir
     mkdir -p $TESTROOT/$RELDEST
     touch $TESTROOT/$RELDEST/$ITEM
-    do_test $RELSRC $ITEM f $RELDEST 1 0 -1
+    do_test $RELSRC $ITEM f $RELDEST 1 0 -1 -r
 }
 
 @test "r, folder, not exists" {
     RELSRC=disk1/users/jonathan
     ITEM=somedir
     RELDEST=disk2/disk1data/users/jonathan
-    do_test $RELSRC $ITEM d $RELDEST 0 1 -1
+    do_test $RELSRC $ITEM d $RELDEST 0 1 -1 -r
 }
 
 @test "r, folder, parent exists" {
@@ -200,7 +201,7 @@ function setup() {
     ITEM=somedir
     RELDEST=disk2/disk1data/users/jonathan
     mkdir -p $TESTROOT/$RELDEST
-    do_test $RELSRC $ITEM d $RELDEST 0 1 -1
+    do_test $RELSRC $ITEM d $RELDEST 0 1 -1 -r
 }
 
 @test "r, folder, item exists" {
@@ -209,7 +210,18 @@ function setup() {
     RELDEST=disk2/disk1data/users/jonathan
     mkdir -p $TESTROOT/$RELDEST
     mkdir $TESTROOT/$RELDEST/$ITEM
-    do_test $RELSRC $ITEM d $RELDEST 0 1 -1
+    do_test $RELSRC $ITEM d $RELDEST 0 1 -1 -r
 }
+
+# @test "r, dir structure, not exist" {
+#     RELSRC=users/jonathan/documents/
+#     ITEM=d1
+#     RELDEST=disk2/machd
+#     mkdir -p $TESTROOT/$RELSRC
+#     mkdir -p $TESTROOT/$RELSRC/$ITEM/d2
+#     touch $TESTROOT/$RELSRC/$ITEM/f1
+#     mkdir -p $TESTROOT/$RELSRC/$ITEM/d2/f2
+#     do_test $RELSRC $ITEM d $RELDEST 0 1 -1 -r
+# }
 
 
