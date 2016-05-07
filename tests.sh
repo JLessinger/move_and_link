@@ -58,10 +58,16 @@ function check_file_count_differences {
 #    F diff (file)
 #    D diff (dir)
 #    L diff (sym link)
+#    replicate
 #  out:
 #    none
 #    side effects: runs the test, prints results
 function do_test {
+    if ! [ -z $8 ] && [ $8 = '-r' ]; then
+	REPLICATE=true
+    else
+	REPLICATE=false
+    fi
     SOURCEDIR=$TESTROOT/$1
     ITEM=$2
     TYPE=$3
@@ -69,18 +75,22 @@ function do_test {
     # the root of the destination 
     DESTDIR=$TESTROOT/$4
     # the full target path
-    TARGET=$DESTDIR/$ITEM
+    if [ "$REPLICATE" = true ]; then
+	TARGET=$DESTDIR/$SOURCEPATH
+    else
+	TARGET=$DESTDIR/$ITEM
+    fi
     mkdir -p $SOURCEDIR
+
     case "$TYPE" in
 	f) touch $SOURCEPATH ;;
 	d) mkdir $SOURCEPATH ;;
 	*) exit 1
     esac
 
- 
     sleep .5
 
-    if ! [ -z $4 ] && [ $4 = '-r' ]; then
+    if [ "$REPLICATE" = true ]; then
 	run ./move_and_link.sh -b -r $SOURCEPATH $DESTDIR
     else
 	run ./move_and_link.sh -b $SOURCEPATH $DESTDIR
@@ -151,3 +161,55 @@ function setup() {
     mkdir $TESTROOT/$RELDEST/$ITEM
     do_test $RELSRC $ITEM d $RELDEST 0 1 -1
 }
+
+#  with -r
+
+@test "r, file, not exists" {
+    RELSRC=disk1/users/jonathan/somedir
+    ITEM=f
+    RELDEST=disk2/disk1data/users/jonathan/somedir
+    do_test $RELSRC $ITEM f $RELDEST 1 0 -1
+}
+
+@test "r, file, parent exists" {
+    RELSRC=disk1/users/jonathan/somedir
+    ITEM=f
+    RELDEST=disk2/disk1data/users/jonathan/somedir
+    mkdir -p $TESTROOT/$RELDEST
+    do_test $RELSRC $ITEM f $RELDEST 1 0 -1
+}
+
+@test "r, file, item exists" {
+    RELSRC=disk1/users/jonathan/somedir
+    ITEM=f
+    RELDEST=disk2/disk1data/users/jonathan/somedir
+    mkdir -p $TESTROOT/$RELDEST
+    touch $TESTROOT/$RELDEST/$ITEM
+    do_test $RELSRC $ITEM f $RELDEST 1 0 -1
+}
+
+@test "r, folder, not exists" {
+    RELSRC=disk1/users/jonathan
+    ITEM=somedir
+    RELDEST=disk2/disk1data/users/jonathan
+    do_test $RELSRC $ITEM d $RELDEST 0 1 -1
+}
+
+@test "r, folder, parent exists" {
+    RELSRC=disk1/users/jonathan
+    ITEM=somedir
+    RELDEST=disk2/disk1data/users/jonathan
+    mkdir -p $TESTROOT/$RELDEST
+    do_test $RELSRC $ITEM d $RELDEST 0 1 -1
+}
+
+@test "r, folder, item exists" {
+    RELSRC=disk1/users/jonathan
+    ITEM=somedir
+    RELDEST=disk2/disk1data/users/jonathan
+    mkdir -p $TESTROOT/$RELDEST
+    mkdir $TESTROOT/$RELDEST/$ITEM
+    do_test $RELSRC $ITEM d $RELDEST 0 1 -1
+}
+
+

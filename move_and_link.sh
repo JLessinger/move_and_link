@@ -1,21 +1,3 @@
-if [ $1 == "-b" ]; then
-    shift;
-    echo "shift $1"
-    BYPASS=true
-else
-    BYPASS=false
-fi
-
-if [ $1 == "-r" ]; then
-    shift;
-    echo "shift $1"
-    REPLICATE=true
-else
-    REPLICATE=false
-fi
-ORIG_PATH=$1
-NEW_FOLDER=$2
-
 function go {
     DIR=`dirname $NEW_PATH`
     mkdir -p $DIR
@@ -29,6 +11,22 @@ function go {
 	exit 1
     fi
 }
+
+if [ $1 == "-b" ]; then
+    shift;
+    BYPASS=true
+else
+    BYPASS=false
+fi
+
+if [ $1 == "-r" ]; then
+    shift;
+    REPLICATE=true
+else
+    REPLICATE=false
+fi
+ORIG_PATH=$1
+NEW_FOLDER=$2
 
 ITEM=`basename $ORIG_PATH`
 if [ "$REPLICATE" == true ] ; then
