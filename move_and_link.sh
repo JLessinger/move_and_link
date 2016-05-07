@@ -12,19 +12,41 @@ function go {
     fi
 }
 
-if [ $1 == "-b" ]; then
-    shift;
-    BYPASS=true
-else
-    BYPASS=false
-fi
+# A POSIX variable
+OPTIND=1         # Reset in case getopts has been used previously in the shell.
 
-if [ $1 == "-r" ]; then
-    shift;
-    REPLICATE=true
-else
-    REPLICATE=false
-fi
+# Initialize our own variables:
+BYPASS=false
+REPLICATE=false
+
+while getopts "br:" opt; do
+    case "$opt" in
+    b)
+	BYPASS=true
+        ;;
+    v)  REPLICATE=true
+        ;;
+    esac
+done
+
+shift $((OPTIND-1))
+
+[ "$1" = "--" ] && shift
+
+
+# if [ $1 == "-b" ]; then
+#     shift;
+#     BYPASS=true
+# else
+#     BYPASS=false
+# fi
+
+# if [ $1 == "-r" ]; then
+#     shift;
+#     REPLICATE=true
+# else
+#     REPLICATE=false
+# fi
 ORIG_PATH=$1
 NEW_FOLDER=$2
 
