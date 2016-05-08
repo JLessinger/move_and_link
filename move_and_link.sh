@@ -66,7 +66,7 @@ function parse_verify_confirm_execute {
             r)
 		REPLICATE=true ;;
             i)
-		LINK_TO_INVERT=$OPTARG ;;
+		LINK_TO_INVERT=${OPTARG%/} ;;
 	    *)
 		abort "$USG_MSG"
 	esac
