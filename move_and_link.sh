@@ -110,7 +110,8 @@ function confirm_execute {
 function confirm_execute_inverse {
     FROM=`ls -l $LINK_TO_INVERT | awk '{print $11}'`
     TO=`dirname $LINK_TO_INVERT`
-    RND=`base64 /dev/urandom | head -c 32`
+    DATE=`date +%s`
+    RND=`echo $LINK_TO_INVERT.$DATE | md5`
     TMPLNK=$LINK_TO_INVERT.$RND
 
     confirm $FROM $TO
