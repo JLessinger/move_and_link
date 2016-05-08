@@ -1,4 +1,9 @@
 TESTROOT=./testdir
+DEBUGFILE=debug.txt #stdout and stderr
+function log_debug_info {
+    echo $1 >> $DEBUGFILE
+}
+
 
 function link_target_relative {
     echo `ls -l $1 | awk '{print $11}'`
@@ -96,7 +101,8 @@ function do_test {
 	run ./move_and_link.sh -b $SOURCEPATH $DESTDIR
     fi
 
-    echo "$output" >> output.txt
+    log_debug_info "run output=$output\n"
+    log_debug_info "run status=$status\n"
     [ "$status" -eq 0 ]
 
     sleep .1
