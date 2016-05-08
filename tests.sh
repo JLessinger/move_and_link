@@ -29,7 +29,7 @@ function types_correct {
 
 }
 
-function link_correct {
+function check_link {
     EXPECTED_TARGET=$1
     LNK=$2
     INVERSE=$3
@@ -70,6 +70,90 @@ function check_file_count_differences {
     fi
 }
 
+function do_checks {
+    TARGET=$1
+    SOURCEPATH=$2
+    INVERSE=$3
+    fd=$4
+    dd=$5
+    ld=$6
+    TYPES=$(types_correct $TARGET $SOURCEPATH $INVERSE)
+    [[ $TYPES -eq 0 ]]
+
+    LNK=$(check_link $TARGET $SOURCEPATH $INVERSE)
+    [[ $LNK -eq 0 ]]
+
+    DIFF=$(check_file_count_differences "$SOURCEDIR" "$DESTDIR" $fd $dd $ld)
+    [[ $DIFF -eq 0 ]]
+}
+
+function do_run {
+    SOURCEPATH=$1
+    DESTDIR=$2
+    INVERSE=$3
+    REPLICATE=$4
+    
+    sleep .1
+
+    if [ "$INVERSE" = true ]; then
+	run ./move_and_link.sh -b -i $SOURCEPATH
+    else
+	if [ "$REPLICATE" = true ]; then
+	    run ./move_and_link.sh -b -r $SOURCEPATH $DESTDIR
+	else
+	    run ./move_and_link.sh -b $SOURCEPATH $DESTDIR
+	fi
+    fi
+
+    log_debug_info "run output=$output"
+    log_debug_info "run status=$status"
+    [ "$status" -eq 0 ]
+
+    sleep .1
+}
+
+function do_create_general {
+    SOURCEDIR=$TESTROOT/$1
+    ITEM=$2
+    TYPE=$3
+    SOURCEPATH=$SOURCEDIR/$ITEM
+    # the root of the destination 
+    DESTDIR=$TESTROOT/$4
+    # the complete relative target path from here (script wd)
+    if [ "$REPLICATE" = true ]; then
+	TARGET=$DESTDIR/$SOURCEPATH
+    else
+	TARGET=$DESTDIR/$ITEM
+    fi
+    mkdir -p $SOURCEDIR
+
+    case "$TYPE" in
+	f) touch $SOURCEPATH ;;
+	d) mkdir -p $SOURCEPATH ;; # redundant, but won't complain if ITEM exists already
+	*) exit 1
+    esac
+}
+
+function do_create_inverse {
+    DESTDIR=$1
+    SOURCEPATH=$2
+    TARGET=$3
+    SOURCEDIR=$4
+
+    mkdir -p $DESTDIR
+    # since it's inverted, these are swapped
+    TMP=$SOURCEPATH
+    SOURCEPATH=$TARGET
+    TARGET=$TMP
+
+    # these is used later (file count differences)
+    TMP=$SOURCEDIR
+    SOURCEDIR=$DESTDIR
+    DESTDIR=$TMP
+    
+    ln -s $TARGET $SOURCEPATH
+}
+
 #  in:
 #    relative source dir
 #    item
@@ -92,67 +176,16 @@ function do_test {
     if (! [ -z $8 ] && [ $8 = '-i' ]) || (! [ -z $9 ] && [ $9 = '-i' ]); then
 	INVERSE=true
     fi
-    SOURCEDIR=$TESTROOT/$1
-    ITEM=$2
-    TYPE=$3
-    SOURCEPATH=$SOURCEDIR/$ITEM
-    # the root of the destination 
-    DESTDIR=$TESTROOT/$4
-    # the complete relative target path from here (script wd)
-    if [ "$REPLICATE" = true ]; then
-	TARGET=$DESTDIR/$SOURCEPATH
-    else
-	TARGET=$DESTDIR/$ITEM
-    fi
-    mkdir -p $SOURCEDIR
 
-    case "$TYPE" in
-	f) touch $SOURCEPATH ;;
-	d) mkdir -p $SOURCEPATH ;; # redundant, but won't complain if ITEM exists already
-	*) exit 1
-    esac
+    do_create_general "$@"
 
     if [ "$INVERSE" = true ]; then
-	mkdir -p $DESTDIR
-	# since it's inverted, these are swapped
-	TMP=$SOURCEPATH
-	SOURCEPATH=$TARGET
-	TARGET=$TMP
-
-	# these is used later (file count differences)
-	TMP=$SOURCEDIR
-	SOURCEDIR=$DESTDIR
-	DESTDIR=$TMP
-	
-	ln -s $TARGET $SOURCEPATH
+	do_create_inverse $DESTDIR $SOURCEPATH $TARGET $SOURCEDIR
     fi
 
-    sleep .1
+    do_run $SOURCEPATH $DESTDIR $INVERSE $REPLICATE
 
-    if [ "$INVERSE" = true ]; then
-	run ./move_and_link.sh -b -i $SOURCEPATH
-    else
-	if [ "$REPLICATE" = true ]; then
-	    run ./move_and_link.sh -b -r $SOURCEPATH $DESTDIR
-	else
-	    run ./move_and_link.sh -b $SOURCEPATH $DESTDIR
-	fi
-    fi
-
-    log_debug_info "run output=$output\n"
-    log_debug_info "run status=$status\n"
-    [ "$status" -eq 0 ]
-
-    sleep .1
-
-    TYPES=$(types_correct $TARGET $SOURCEPATH $INVERSE)
-    [[ $TYPES -eq 0 ]]
-
-    LNK=$(link_correct $TARGET $SOURCEPATH $INVERSE)
-    [[ $LNK -eq 0 ]]
-
-    DIFF=$(check_file_count_differences "$SOURCEDIR" "$DESTDIR" $5 $6 $7)
-    [[ $DIFF -eq 0 ]]
+    do_checks $TARGET $SOURCEPATH $INVERSE $5 $6 $7
 }
 
 function setup() {
@@ -285,5 +318,3 @@ function setup() {
     # only in the destination hierarchy.
     do_test $RELSRC $ITEM d $RELDEST 2 6 -1 -r
 }
-
-
