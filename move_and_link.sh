@@ -1,4 +1,4 @@
-USG_MSG="usage: ./move_and_link.sh [-b] [-r] [ -i link | original_file new_folder ]
+USG_MSG="usage: ./move_and_link.sh [-b] [-r] [ -I link | original_file new_folder ]
 \t-b : bypass interactive confirmation; just execute
 \t-r: replicate structure
 \t\t e.g. ./move_and_link.sh -r /some/path /disk2/data/root/
@@ -40,7 +40,6 @@ function verify_confirm_execute {
 	confirm_execute "$@"
     else
 	if ! [ -L $LINK_TO_INVERT ]; then
-	    printf "$LINK_TO_INVERT"
 	    abort "source must be a symbolic link"
 	fi
 	confirm_execute_inverse "$@"
@@ -111,7 +110,8 @@ function confirm_execute {
 function confirm_execute_inverse {
     FROM=`ls -l $LINK_TO_INVERT | awk '{print $11}'`
     TO=`dirname $LINK_TO_INVERT`
-    TMPLNK=$LINK_TO_INVERT.`date +%s`
+    RND=`base64 /dev/urandom | head -c 32`
+    TMPLNK=$LINK_TO_INVERT.$RND
 
     confirm $FROM $TO
 
