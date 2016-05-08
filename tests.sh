@@ -4,24 +4,39 @@ function log_debug_info {
     echo $1 >> $DEBUGFILE
 }
 
-
 function link_target_relative {
     echo `ls -l $1 | awk '{print $11}'`
 }
 
 function types_correct {
     EXPECTED_TARGET=$1
-    LNK=$2
-    if (! [ -h $LNK ] || ! ( [ -f $EXPECTED_TARGET ] || [ -d $EXPECTED_TARGET ])); then
-	return 1
+    SOURCE_PATH=$2
+    INVERSE=$3
+    if [ "$INVERSE" = true ]; then
+	if [ -f $EXPECTED_TARGET ] || [ -L $SOURCE_PATH ] || ! ([ -f $SOURCE_PATH ] || [ -d $SOURCE_PATH ]); then
+	    # either the file was not moved back, or the source is still a link, or the source does not exist
+	    return 1
+	else
+	    return 0
+	fi
     else
-	return 0
+	if (! [ -L $SOURCE_PATH ] || ! ( [ -f $EXPECTED_TARGET ] || [ -d $EXPECTED_TARGET ])); then
+	    return 1
+	else
+	    return 0
+	fi
     fi
+
 }
 
 function link_correct {
     EXPECTED_TARGET=$1
     LNK=$2
+    INVERSE=$3
+    if [ $INVERSE = true ]; then
+	# there is no link to check
+	return 0
+    fi
 
     TARGET=`link_target_relative "$2"`
     # if [ "$EXPECTED_TARGET" = "$TARGET" ]; then
@@ -64,14 +79,18 @@ function check_file_count_differences {
 #    D diff (dir)
 #    L diff (sym link)
 #    replicate
+#    inverse
 #  out:
 #    none
 #    side effects: runs the test, prints results
 function do_test {
-    if ! [ -z $8 ] && [ $8 = '-r' ]; then
+    REPLICATE=false
+    INVERSE=false
+    if (! [ -z $8 ] && [ $8 = '-r' ]) || (! [ -z $9 ] && [ $9 = '-r' ]); then
 	REPLICATE=true
-    else
-	REPLICATE=false
+    fi
+    if (! [ -z $8 ] && [ $8 = '-i' ]) || (! [ -z $9 ] && [ $9 = '-i' ]); then
+	INVERSE=true
     fi
     SOURCEDIR=$TESTROOT/$1
     ITEM=$2
@@ -93,12 +112,31 @@ function do_test {
 	*) exit 1
     esac
 
+    if [ "$INVERSE" = true ]; then
+	mkdir -p $DESTDIR
+	# since it's inverted, these are swapped
+	TMP=$SOURCEPATH
+	SOURCEPATH=$TARGET
+	TARGET=$TMP
+
+	# these is used later (file count differences)
+	TMP=$SOURCEDIR
+	SOURCEDIR=$DESTDIR
+	DESTDIR=$TMP
+	
+	ln -s $TARGET $SOURCEPATH
+    fi
+
     sleep .1
 
-    if [ "$REPLICATE" = true ]; then
-	run ./move_and_link.sh -b -r $SOURCEPATH $DESTDIR
+    if [ "$INVERSE" = true ]; then
+	run ./move_and_link.sh -b -i $SOURCEPATH
     else
-	run ./move_and_link.sh -b $SOURCEPATH $DESTDIR
+	if [ "$REPLICATE" = true ]; then
+	    run ./move_and_link.sh -b -r $SOURCEPATH $DESTDIR
+	else
+	    run ./move_and_link.sh -b $SOURCEPATH $DESTDIR
+	fi
     fi
 
     log_debug_info "run output=$output\n"
@@ -107,10 +145,10 @@ function do_test {
 
     sleep .1
 
-    TYPES=$(types_correct $TARGET $SOURCEPATH)
+    TYPES=$(types_correct $TARGET $SOURCEPATH $INVERSE)
     [[ $TYPES -eq 0 ]]
 
-    LNK=$(link_correct $TARGET $SOURCEPATH)
+    LNK=$(link_correct $TARGET $SOURCEPATH $INVERSE)
     [[ $LNK -eq 0 ]]
 
     DIFF=$(check_file_count_differences "$SOURCEDIR" "$DESTDIR" $5 $6 $7)
@@ -119,6 +157,20 @@ function do_test {
 
 function setup() {
     rm -rf $TESTROOT
+}
+
+@test "inverse file" {
+    RELSRC=disk1/users/jonathan/somedir
+    ITEM=f
+    RELDEST=disk2/disk1data/users/jonathan/somedir
+    do_test $RELSRC $ITEM f $RELDEST -1 0 0 -i
+}
+
+@test "inverse folder" {
+    RELSRC=disk1/users/jonathan/somedir
+    ITEM=f
+    RELDEST=disk2/disk1data/users/jonathan/somedir
+    do_test $RELSRC $ITEM d $RELDEST 0 -1 0 -i
 }
 
 @test "not r, file, not exists" {

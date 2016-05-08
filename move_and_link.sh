@@ -40,6 +40,7 @@ function verify_confirm_execute {
 	confirm_execute "$@"
     else
 	if ! [ -L $LINK_TO_INVERT ]; then
+	    printf "$LINK_TO_INVERT"
 	    abort "source must be a symbolic link"
 	fi
 	confirm_execute_inverse "$@"
@@ -109,14 +110,17 @@ function confirm_execute {
 
 function confirm_execute_inverse {
     FROM=`ls -l $LINK_TO_INVERT | awk '{print $11}'`
-    TO=$LINK_TO_INVERT
+    TO=`dirname $LINK_TO_INVERT`
+    TMPLNK=$LINK_TO_INVERT.`date +%s`
 
     confirm $FROM $TO
-    
+
+    mv $LINK_TO_INVERT $TMPLNK
     mv $FROM $TO
     if [ $? -ne 0 ]; then
 	abort 
     fi
+    rm $TMPLNK
 }
 
 parse_verify_confirm_execute "$@"
