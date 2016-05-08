@@ -7,7 +7,7 @@ USG_MSG="usage: ./move_and_link.sh [-b] [-r] [ -i link | original_file new_folde
 names with special characters, including whitespace, not supported!\n"
 
 function abort {
-    printf "$USG_MSG" >&2
+    printf "$1\n" >&2
     exit 1
 }
 
@@ -34,13 +34,13 @@ function confirm {
 
 function verify_confirm_execute {
     if [ -z $LINK_TO_INVERT ]; then
-	if ! ( [ -f $1 ] || [ -d $1 ] ); then
-	    abort
+	if [ -L $1 ] || ! ( [ -f $1 ] || [ -d $1 ] ); then
+	    abort "source path wrong type (is it already a link?)"
 	fi
 	confirm_execute "$@"
     else
-	if ! [ -h $LINK_TO_INVERT ]; then
-	    abort
+	if ! [ -L $LINK_TO_INVERT ]; then
+	    abort "source must be a symbolic link"
 	fi
 	confirm_execute_inverse "$@"
     fi
@@ -68,7 +68,7 @@ function parse_verify_confirm_execute {
             i)
 		LINK_TO_INVERT=$OPTARG ;;
 	    *)
-		abort
+		abort "$USG_MSG"
 	esac
     done
 
@@ -76,6 +76,11 @@ function parse_verify_confirm_execute {
 
     [ "$1" = "--" ] && shift
 
+    # get rid of trailing / to make the rest easier
+    args=( "$@" )
+    args[0]="${1%/}"
+    args[1]="${2%/}"
+    set "${args[@]}"
     verify_confirm_execute "$@"
 }
 
