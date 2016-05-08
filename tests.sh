@@ -4,15 +4,16 @@ function log_debug_info {
     echo $1 >> $DEBUGFILE
 }
 
-
 function link_target_relative {
-    echo `ls -l $1 | awk '{print $11}'`
+    log_debug_info "LTR"
+    log_debug_info `ls -l "$1"`
+    echo `ls -l "$1" | awk '{print $11}'`
 }
 
 function types_correct {
     EXPECTED_TARGET=$1
     LNK=$2
-    if (! [ -h $LNK ] || ! ( [ -f $EXPECTED_TARGET ] || [ -d $EXPECTED_TARGET ])); then
+    if (! [ -h "$LNK" ] || ! ( [ -f "$EXPECTED_TARGET" ] || [ -d "$EXPECTED_TARGET" ])); then
 	return 1
     else
 	return 0
@@ -20,14 +21,17 @@ function types_correct {
 }
 
 function link_correct {
-    EXPECTED_TARGET=$1
-    LNK=$2
+    EXPECTED_TARGET="$1"
+    LNK="$2"
 
     TARGET=`link_target_relative "$2"`
+    log_debug_info 'TARGET='
+    log_debug_info "$TARGET"
     # if [ "$EXPECTED_TARGET" = "$TARGET" ]; then
     if [ "$EXPECTED_TARGET" -ef "$TARGET" ]; then
 	return 0
     else
+	printf "FAIL"
 	return 1
     fi
 }
@@ -74,7 +78,7 @@ function do_test {
 	REPLICATE=false
     fi
     SOURCEDIR=$TESTROOT/$1
-    ITEM=$2
+    ITEM="$2"
     TYPE=$3
     SOURCEPATH=$SOURCEDIR/$ITEM
     # the root of the destination 
@@ -87,18 +91,23 @@ function do_test {
     fi
     mkdir -p $SOURCEDIR
 
+    log_debug_info "about to make item $TYPE $SOURCEPATH"
+    
     case "$TYPE" in
-	f) touch $SOURCEPATH ;;
+	f) touch "$SOURCEPATH" ;;
 	d) mkdir -p $SOURCEPATH ;; # redundant, but won't complain if ITEM exists already
-	*) exit 1
+	*)
+	    log_debug_info "exiting"
+	    exit 1 ;;
     esac
 
+    log_debug_info $DESTDIR
     sleep .1
 
     if [ "$REPLICATE" = true ]; then
-	run ./move_and_link.sh -b -r $SOURCEPATH $DESTDIR
+	run ./move_and_link.sh -d -b -r $SOURCEPATH $DESTDIR
     else
-	run ./move_and_link.sh -b $SOURCEPATH $DESTDIR
+	run ./move_and_link.sh -d -b "${SOURCEPATH}" $DESTDIR
     fi
 
     log_debug_info "run output=$output\n"
@@ -107,10 +116,12 @@ function do_test {
 
     sleep .1
 
-    TYPES=$(types_correct $TARGET $SOURCEPATH)
+    log_debug_info "types_correct args=$TARGET $SOURCEPATH"
+
+    TYPES=$(types_correct "$TARGET" "$SOURCEPATH")
     [[ $TYPES -eq 0 ]]
 
-    LNK=$(link_correct $TARGET $SOURCEPATH)
+    LNK=$(link_correct "$TARGET" "$SOURCEPATH")
     [[ $LNK -eq 0 ]]
 
     DIFF=$(check_file_count_differences "$SOURCEDIR" "$DESTDIR" $5 $6 $7)
@@ -121,117 +132,125 @@ function setup() {
     rm -rf $TESTROOT
 }
 
-@test "not r, file, not exists" {
+@test "name with space" {
     RELSRC=disk1/users/jonathan/somedir
-    ITEM=f
+    ITEM="f name"
     RELDEST=disk2/disk1data/users/jonathan/somedir
-    do_test $RELSRC $ITEM f $RELDEST 1 0 -1
+
+    log_debug_info "about to do test"
+    do_test "$RELSRC" "$ITEM" f $RELDEST 1 0 -1
 }
 
-@test "not r, file, parent exists" {
-    RELSRC=disk1/users/jonathan/somedir
-    ITEM=f
-    RELDEST=disk2/disk1data/users/jonathan/somedir
-    mkdir -p $TESTROOT/$RELDEST
-    do_test $RELSRC $ITEM f $RELDEST 1 0 -1
-}
+# #  without r
+# @test "not r, file, not exists" {
+#     RELSRC=disk1/users/jonathan/somedir
+#     ITEM=f
+#     RELDEST=disk2/disk1data/users/jonathan/somedir
+#     do_test $RELSRC $ITEM f $RELDEST 1 0 -1
+# }
 
-@test "not r, file, item exists" {
-    RELSRC=disk1/users/jonathan/somedir
-    ITEM=f
-    RELDEST=disk2/disk1data/users/jonathan/somedir
-    mkdir -p $TESTROOT/$RELDEST
-    touch $TESTROOT/$RELDEST/$ITEM
-    do_test $RELSRC $ITEM f $RELDEST 1 0 -1
-}
+# @test "not r, file, parent exists" {
+#     RELSRC=disk1/users/jonathan/somedir
+#     ITEM=f
+#     RELDEST=disk2/disk1data/users/jonathan/somedir
+#     mkdir -p $TESTROOT/$RELDEST
+#     do_test $RELSRC $ITEM f $RELDEST 1 0 -1
+# }
 
-@test "not r, folder, not exists" {
-    RELSRC=disk1/users/jonathan
-    ITEM=somedir
-    RELDEST=disk2/disk1data/users/jonathan
-    do_test $RELSRC $ITEM d $RELDEST 0 1 -1
-}
+# @test "not r, file, item exists" {
+#     RELSRC=disk1/users/jonathan/somedir
+#     ITEM=f
+#     RELDEST=disk2/disk1data/users/jonathan/somedir
+#     mkdir -p $TESTROOT/$RELDEST
+#     touch $TESTROOT/$RELDEST/$ITEM
+#     do_test $RELSRC $ITEM f $RELDEST 1 0 -1
+# }
 
-@test "not r, folder, parent exists" {
-    RELSRC=disk1/users/jonathan
-    ITEM=somedir
-    RELDEST=disk2/disk1data/users/jonathan
-    mkdir -p $TESTROOT/$RELDEST
-    do_test $RELSRC $ITEM d $RELDEST 0 1 -1
-}
+# @test "not r, folder, not exists" {
+#     RELSRC=disk1/users/jonathan
+#     ITEM=somedir
+#     RELDEST=disk2/disk1data/users/jonathan
+#     do_test $RELSRC $ITEM d $RELDEST 0 1 -1
+# }
 
-@test "not r, folder, item exists" {
-    RELSRC=disk1/users/jonathan
-    ITEM=somedir
-    RELDEST=disk2/disk1data/users/jonathan
-    mkdir -p $TESTROOT/$RELDEST
-    mkdir $TESTROOT/$RELDEST/$ITEM
-    do_test $RELSRC $ITEM d $RELDEST 0 1 -1
-}
+# @test "not r, folder, parent exists" {
+#     RELSRC=disk1/users/jonathan
+#     ITEM=somedir
+#     RELDEST=disk2/disk1data/users/jonathan
+#     mkdir -p $TESTROOT/$RELDEST
+#     do_test $RELSRC $ITEM d $RELDEST 0 1 -1
+# }
 
-#  with -r
+# @test "not r, folder, item exists" {
+#     RELSRC=disk1/users/jonathan
+#     ITEM=somedir
+#     RELDEST=disk2/disk1data/users/jonathan
+#     mkdir -p $TESTROOT/$RELDEST
+#     mkdir $TESTROOT/$RELDEST/$ITEM
+#     do_test $RELSRC $ITEM d $RELDEST 0 1 -1
+# }
 
-@test "r, file, not exists" {
-    RELSRC=disk1/users/jonathan/somedir
-    ITEM=f
-    RELDEST=disk2/disk1data/
-    # folder diff should be the 4 in RELSRC plus TESTROOT, which is part of the source path.
-    do_test $RELSRC $ITEM f $RELDEST 1 5 -1 -r
-}
+# #  with -r
 
-@test "r, file, parent exists" {
-    RELSRC=disk1/users/jonathan/somedir
-    ITEM=f
-    RELDEST=disk2/disk1data
-    mkdir -p $TESTROOT/$RELDEST/$TESTROOT/$RELSRC
-    do_test $RELSRC $ITEM f $RELDEST 1 5 -1 -r
-}
+# @test "r, file, not exists" {
+#     RELSRC=disk1/users/jonathan/somedir
+#     ITEM=f
+#     RELDEST=disk2/disk1data/
+#     # folder diff should be the 4 in RELSRC plus TESTROOT, which is part of the source path.
+#     do_test $RELSRC $ITEM f $RELDEST 1 5 -1 -r
+# }
 
-@test "r, file, item exists" {
-    RELSRC=disk1/users/jonathan/somedir
-    ITEM=f
-    RELDEST=disk2/disk1data
-    mkdir -p $TESTROOT/$RELDEST/$TESTROOT/$RELSRC
-    touch $TESTROOT/$RELDEST/$TESTROOT/$RELSRC/$ITEM
-    do_test $RELSRC $ITEM f $RELDEST 1 5 -1 -r
-}
+# @test "r, file, parent exists" {
+#     RELSRC=disk1/users/jonathan/somedir
+#     ITEM=f
+#     RELDEST=disk2/disk1data
+#     mkdir -p $TESTROOT/$RELDEST/$TESTROOT/$RELSRC
+#     do_test $RELSRC $ITEM f $RELDEST 1 5 -1 -r
+# }
 
-@test "r, folder, not exists" {
-    RELSRC=disk1/users/jonathan
-    ITEM=somedir
-    RELDEST=disk2/disk1data
-    # folder diff count = 3 for RELSRC + 1 for TESTROOT + 1 for ITEM
-    do_test $RELSRC $ITEM d $RELDEST 0 5 -1 -r
-}
+# @test "r, file, item exists" {
+#     RELSRC=disk1/users/jonathan/somedir
+#     ITEM=f
+#     RELDEST=disk2/disk1data
+#     mkdir -p $TESTROOT/$RELDEST/$TESTROOT/$RELSRC
+#     touch $TESTROOT/$RELDEST/$TESTROOT/$RELSRC/$ITEM
+#     do_test $RELSRC $ITEM f $RELDEST 1 5 -1 -r
+# }
 
-@test "r, folder, parent exists" {
-    RELSRC=disk1/users/jonathan
-    ITEM=somedir
-    RELDEST=disk2/disk1data
-    mkdir -p $TESTROOT/$RELDEST/$TESTROOT/$RELSRC
-    do_test $RELSRC $ITEM d $RELDEST 0 5 -1 -r
-}
+# @test "r, folder, not exists" {
+#     RELSRC=disk1/users/jonathan
+#     ITEM=somedir
+#     RELDEST=disk2/disk1data
+#     # folder diff count = 3 for RELSRC + 1 for TESTROOT + 1 for ITEM
+#     do_test $RELSRC $ITEM d $RELDEST 0 5 -1 -r
+# }
 
-@test "r, folder, item exists" {
-    RELSRC=disk1/users/jonathan
-    ITEM=somedir
-    RELDEST=disk2/disk1data
-    mkdir -p $TESTROOT/$RELDEST/$TESTROOT/$RELSRC/$ITEM
-    do_test $RELSRC $ITEM d $RELDEST 0 5 -1 -r
-}
+# @test "r, folder, parent exists" {
+#     RELSRC=disk1/users/jonathan
+#     ITEM=somedir
+#     RELDEST=disk2/disk1data
+#     mkdir -p $TESTROOT/$RELDEST/$TESTROOT/$RELSRC
+#     do_test $RELSRC $ITEM d $RELDEST 0 5 -1 -r
+# }
 
-@test "r, dir substructure, not exist" {
-    RELSRC=users/jonathan/documents/
-    ITEM=d1
-    RELDEST=disk2/machd
-    #  make some other substructure
-    mkdir -p $TESTROOT/$RELSRC/$ITEM/d2
-    touch $TESTROOT/$RELSRC/$ITEM/f1
-    touch  $TESTROOT/$RELSRC/$ITEM/d2/f2
-    # now go
-    # remember to count the additional subfolders and files, which should appear
-    # only in the destination hierarchy.
-    do_test $RELSRC $ITEM d $RELDEST 2 6 -1 -r
-}
+# @test "r, folder, item exists" {
+#     RELSRC=disk1/users/jonathan
+#     ITEM=somedir
+#     RELDEST=disk2/disk1data
+#     mkdir -p $TESTROOT/$RELDEST/$TESTROOT/$RELSRC/$ITEM
+#     do_test $RELSRC $ITEM d $RELDEST 0 5 -1 -r
+# }
 
-
+# @test "r, dir substructure, not exist" {
+#     RELSRC=users/jonathan/documents/
+#     ITEM=d1
+#     RELDEST=disk2/machd
+#     #  make some other substructure
+#     mkdir -p $TESTROOT/$RELSRC/$ITEM/d2
+#     touch $TESTROOT/$RELSRC/$ITEM/f1
+#     touch  $TESTROOT/$RELSRC/$ITEM/d2/f2
+#     # now go
+#     # remember to count the additional subfolders and files, which should appear
+#     # only in the destination hierarchy.
+#     do_test $RELSRC $ITEM d $RELDEST 2 6 -1 -r
+# }

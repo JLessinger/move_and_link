@@ -1,5 +1,6 @@
-USG_MSG="usage: ./move_and_link.sh [-b] [-r] [ -i link | original_file new_folder ]
+USG_MSG="usage: ./move_and_link.sh [-b] [-r] [-d] [ -i link | original_file new_folder ]
 \t-b : bypass interactive confirmation; just execute
+\t-d : print debug info to debug.txt in working dir
 \t-r: replicate structure
 \t\t e.g. ./move_and_link.sh -r /some/path /disk2/data/root/
 \t\t moves /some/path to /disk2/data/root/some/path
@@ -33,9 +34,11 @@ function confirm {
 
 function verify_confirm_execute {
     if [ -z $LINK_TO_INVERT ]; then
-	if ! ( [ -f $1 ] || [ -d $1 ] ); then
+	if ! ( [ -f "$1" ] || [ -d $1 ] ); then
 	    abort
 	fi
+	printf "verified\n"
+	printf "$1"
 	confirm_execute "$@"
     else
 	if ! [ -h $LINK_TO_INVERT ]; then
@@ -49,13 +52,16 @@ function verify_confirm_execute {
 #  out: nothing
 #  side effects: set switch vars, remove switches from script args
 function parse_verify_confirm_execute {
+    printf "ARGS\n"
+    printf "$3"
     OPTIND=1         # Reset in case getopts has been used previously in the shell.
 
     # Initialize our own variables:
     BYPASS=false
     REPLICATE=false
+    DEBUG=false
 
-    while getopts "hbri:" opt; do
+    while getopts "dhbri:" opt; do
 	case "$opt" in
             h)
 		printf "$USG_MSG"
@@ -66,6 +72,7 @@ function parse_verify_confirm_execute {
 		REPLICATE=true ;;
             i)
 		LINK_TO_INVERT=$OPTARG ;;
+	    d)  DEBUG=true ;;
 	    *)
 		abort
 	esac
@@ -81,6 +88,8 @@ function parse_verify_confirm_execute {
 function confirm_execute {
     ORIG_PATH=$1
     NEW_FOLDER=$2
+    printf "ORIG_PATH="
+    printf "$ORIG_PATH"
 
     ITEM=`basename $ORIG_PATH`
     if [ "$REPLICATE" == true ] ; then
@@ -95,7 +104,9 @@ function confirm_execute {
 
     DIR=`dirname $NEW_PATH`
     mkdir -p $DIR
-    mv $ORIG_PATH $NEW_FOLDER && ln -s `realpath $NEW_PATH` $LNK
+    printf "lnkpath="
+    printf "$LNK"
+    mv "$ORIG_PATH" $NEW_FOLDER && ln -s `realpath $NEW_PATH` "$LNK"
     if [ $? -ne 0 ]; then
 	abort
     fi
@@ -112,5 +123,8 @@ function confirm_execute_inverse {
 	abort 
     fi
 }
+
+
+printf "$3"
 
 parse_verify_confirm_execute "$@"
