@@ -35,7 +35,7 @@ function confirm {
 function verify_confirm_execute {
     if [ -z $LINK_TO_INVERT ]; then
 	if [ -L $1 ] || ! ( [ -f $1 ] || [ -d $1 ] ); then
-	    abort "source path wrong type (is it already a link?)"
+	    abort "source path missing or wrong type (is it already a link?)"
 	fi
 	confirm_execute "$@"
     else
