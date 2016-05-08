@@ -3,7 +3,8 @@ USG_MSG="usage: ./move_and_link.sh [-b] [-r] [ -i link | original_file new_folde
 \t-r: replicate structure
 \t\t e.g. ./move_and_link.sh -r /some/path /disk2/data/root/
 \t\t moves /some/path to /disk2/data/root/some/path
-\t-i: inverse. if passed with a soft link, moves its target back to the link's location.\n"
+\t-i: inverse. if passed with a soft link, moves its target back to the link's location.\n
+names with special characters, including whitespace, not supported!\n"
 
 function abort {
     printf "$USG_MSG" >&2
