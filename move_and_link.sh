@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 USG_MSG="usage: ./move_and_link.sh [-b] [-r] [ -I link | original_file new_folder ]
 \t-b : bypass interactive confirmation; just execute
 \t-r: replicate structure
