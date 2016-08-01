@@ -1,6 +1,6 @@
 import os
-
 import shutil
+import errno
 
 
 def default(args):
@@ -23,6 +23,24 @@ def inverse(args):
     os.remove(src)
     src_par = os.path.dirname(src)
     shutil.move(dst, src_par)
+
+    remove_empty_dirs(os.path.dirname(dst))
+
+def remove_empty_dirs(dir_path):
+    """
+    Deletes empty directory chain as far up as possible.
+    :param dst_dir: path to directory
+    :return: void
+    """
+    try:
+        os.rmdir(dir_path)
+        parent = os.path.dirname(dir_path)
+        if os.path.isdir(parent):
+            remove_empty_dirs(parent)
+    except OSError as e:
+        if e.errno != errno.ENOTEMPTY:
+            raise
+
 
 
 if __name__ == '__main__':
