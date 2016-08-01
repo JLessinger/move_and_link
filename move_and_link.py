@@ -16,16 +16,20 @@ def default(args):
     dst = args.destination
 
     if args.replicate:
+        src_dir = os.path.dirname(src)
         if args.as_typed:
-            pass #TODO
+            part_to_replicate = src_dir
         else:
-            pass #TODO
+            part_to_replicate = os.path.abspath(src_dir)
+        dst_dir = dst +'/' +  part_to_replicate # os.path.join does not work as expected here
+    else:
+        dst_dir = dst
 
-    mkdir_p(dst)
-    shutil.move(src, dst)
+    mkdir_p(dst_dir)
+    shutil.move(src, dst_dir)
 
     item = os.path.basename(src)
-    dst_path = os.path.join(dst, item)
+    dst_path = os.path.join(dst_dir, item)
     os.symlink(os.path.abspath(dst_path), src)
 
 def inverse(args):
@@ -73,10 +77,4 @@ def remove_empty_dirs(dir_path):
 
 
 if __name__ == '__main__':
-    args = lambda l: 1
-    args.source = 'f'
-    args.as_typed = False
-    args.replicate = False
-    #inverse(args)
-    args.destination = 'some/dir'
-    default(args)
+    args.func(args)
