@@ -1,15 +1,18 @@
 #!/usr/bin/env bash
 
-USG_MSG="usage: ./move_and_link.sh [-b] [-r] [ -I link | original_file new_folder ]
+USG_MSG="usage: ./move_and_link.sh [-b] [-r [-t]] [ -I link | original_file new_folder ]
 \t-b : bypass interactive confirmation; just execute
 \t-r: replicate structure
 \t\t e.g. ./move_and_link.sh -r /some/path /disk2/data/root/
 \t\t moves /some/path to /disk2/data/root/some/path
-\t-i: inverse. if passed with a soft link, moves its target back to the link's location.\n
+\t-t: if replicating structure, replicate only relative path given as input. By default,
+\t\treplicate absolute path (from root down to the item)
+\t-i: inverse. if passed with a soft link, moves its target back to the link's location.
+\t\tIf other arguments given, inverts the corresponding move-and-link operation.\n
 names with special characters, including whitespace, not supported!\n"
 
 function abort {
-    printf "$1\n" >&2
+    printf "$1" >&2
     exit 1
 }
 
@@ -35,14 +38,19 @@ function confirm {
 }
 
 function verify_confirm_execute {
+    if ! $ABSOLUTE && ! $REPLICATE ; then
+	# -t flag was given but replicate was not. This doesn't mean anything.
+	abort "$USG_MSG"
+    fi
+    
     if [ -z $LINK_TO_INVERT ]; then
 	if [ -L $1 ] || ! ( [ -f $1 ] || [ -d $1 ] ); then
-	    abort "source path missing or wrong type (is it already a link?)"
+	    abort "source path missing or wrong type (is it already a link?)\n"
 	fi
 	confirm_execute "$@"
     else
 	if ! [ -L $LINK_TO_INVERT ]; then
-	    abort "source must be a symbolic link"
+	    abort "source must be a symbolic link\n"
 	fi
 	confirm_execute_inverse "$@"
     fi
@@ -52,13 +60,15 @@ function verify_confirm_execute {
 #  out: nothing
 #  side effects: set switch vars, remove switches from script args
 function parse_verify_confirm_execute {
-    OPTIND=1         # Reset in case getopts has been used previously in the shell.
+    # Reset in case getopts has been used previously in the shell.
+    OPTIND=1         
 
     # Initialize our own variables:
     BYPASS=false
     REPLICATE=false
+    ABSOLUTE=true
 
-    while getopts "hbri:" opt; do
+    while getopts "hbrti:" opt; do
 	case "$opt" in
             h)
 		printf "$USG_MSG"
@@ -67,6 +77,8 @@ function parse_verify_confirm_execute {
 		BYPASS=true ;;
             r)
 		REPLICATE=true ;;
+	    t)
+		ABSOLUTE=false ;;
             i)
 		LINK_TO_INVERT=${OPTARG%/} ;;
 	    *)
@@ -92,7 +104,12 @@ function confirm_execute {
 
     ITEM=`basename $ORIG_PATH`
     if [ "$REPLICATE" == true ] ; then
-	NEW_FOLDER=${NEW_FOLDER%/}/`dirname $ORIG_PATH`  
+	if [ "$ABSOLUTE" == true ] ; then
+	    REP_PATH=`realpath $ORIG_PATH`
+	else
+	    REP_PATH=$ORIG_PATH
+	fi
+	NEW_FOLDER=${NEW_FOLDER%/}/`dirname $REP_PATH`  
     fi
     NEW_PATH=${NEW_FOLDER%/}/$ITEM
 

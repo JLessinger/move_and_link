@@ -26,7 +26,6 @@ function types_correct {
 	    return 0
 	fi
     fi
-
 }
 
 function check_link {
@@ -39,7 +38,6 @@ function check_link {
     fi
 
     TARGET=`link_target_relative "$2"`
-    # if [ "$EXPECTED_TARGET" = "$TARGET" ]; then
     if [ "$EXPECTED_TARGET" -ef "$TARGET" ]; then
 	return 0
     else
@@ -155,7 +153,7 @@ function do_create_inverse {
 }
 
 #  in:
-#    relative source dir
+#    source dir relative to testroot
 #    item
 #    item type (f, d, etc.)
 #    relative dest dir
@@ -163,19 +161,15 @@ function do_create_inverse {
 #    D diff (dir)
 #    L diff (sym link)
 #    replicate
+#    as typed
 #    inverse
 #  out:
 #    none
 #    side effects: runs the test, prints results
 function do_test {
-    REPLICATE=false
-    INVERSE=false
-    if (! [ -z $8 ] && [ $8 = '-r' ]) || (! [ -z $9 ] && [ $9 = '-r' ]); then
-	REPLICATE=true
-    fi
-    if (! [ -z $8 ] && [ $8 = '-i' ]) || (! [ -z $9 ] && [ $9 = '-i' ]); then
-	INVERSE=true
-    fi
+    REPLICATE=$8
+    AS_TYPED=$9
+    INVERSE=$10
 
     do_create_general "$@"
 
@@ -183,7 +177,7 @@ function do_test {
 	do_create_inverse $DESTDIR $SOURCEPATH $TARGET $SOURCEDIR
     fi
 
-    do_run $SOURCEPATH $DESTDIR $INVERSE $REPLICATE
+    do_run $SOURCEPATH $DESTDIR $REPLICATE $AS_TYPED $INVERSE
 
     do_checks $TARGET $SOURCEPATH $INVERSE $5 $6 $7
 }
@@ -196,21 +190,21 @@ function setup() {
     RELSRC=disk1/users/jonathan/somedir
     ITEM=f
     RELDEST=disk2/disk1data/users/jonathan/somedir
-    do_test $RELSRC $ITEM f $RELDEST -1 0 0 -i
+    do_test $RELSRC $ITEM f $RELDEST -1 0 0 false false true
 }
 
 @test "inverse folder" {
     RELSRC=disk1/users/jonathan/somedir
     ITEM=f
     RELDEST=disk2/disk1data/users/jonathan/somedir
-    do_test $RELSRC $ITEM d $RELDEST 0 -1 0 -i
+    do_test $RELSRC $ITEM d $RELDEST 0 -1 0 false true true
 }
 
 @test "not r, file, not exists" {
     RELSRC=disk1/users/jonathan/somedir
     ITEM=f
     RELDEST=disk2/disk1data/users/jonathan/somedir
-    do_test $RELSRC $ITEM f $RELDEST 1 0 -1
+    do_test $RELSRC $ITEM f $RELDEST 1 0 -1 false true false
 }
 
 @test "not r, file, parent exists" {
@@ -317,4 +311,10 @@ function setup() {
     # remember to count the additional subfolders and files, which should appear
     # only in the destination hierarchy.
     do_test $RELSRC $ITEM d $RELDEST 2 6 -1 -r
+}
+
+@test "replicate absolute" {
+}
+
+@test "replicate as-typed (not absolute)" {
 }
