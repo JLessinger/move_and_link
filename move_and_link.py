@@ -1,9 +1,10 @@
+import argparse
 import os
 import shutil
 import errno
 
 
-def default(args):
+def move(args):
     assert (not args.as_typed) or args.replicate
     assert args.source and args.destination
 
@@ -32,8 +33,8 @@ def default(args):
     dst_path = os.path.join(dst_dir, item)
     os.symlink(os.path.abspath(dst_path), src)
 
-def inverse(args):
-    assert not args.as_typed and not args.replicate
+def invert(args):
+    assert not hasattr(args, 'as_typed') and not hasattr(args, 'replicate')
     assert hasattr(args, 'source') and not hasattr(args, 'destination')
 
     src = os.path.abspath(args.source)
@@ -76,5 +77,35 @@ def remove_empty_dirs(dir_path):
             raise
 
 
+class _CondStoreTrueAction(argparse._StoreTrueAction):
+    def __init__(self, option_strings, dest, nargs=None, **kwargs):
+        req = kwargs.pop('to_be_required', [])
+        super(_CondStoreTrueAction, self).__init__(option_strings, dest, **kwargs)
+        self.make_required = req
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        for x in self.make_required:
+            x.required = True
+        try:
+            return super(_CondStoreTrueAction, self).__call__(parser, namespace, values, option_string)
+        except NotImplementedError:
+            pass
+
+
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    subparsers = parser.add_subparsers()
+
+    move_parser = subparsers.add_parser('move', usage='%(prog)s [-h] [-b [-a]] source destination')
+    move_parser.add_argument('source', type=str)
+    move_parser.add_argument('destination', type=str)
+    b_arg = move_parser.add_argument('-r', '--replicate', action='store_true')
+    move_parser.add_argument('-t', '--as_typed', action=_CondStoreTrueAction, to_be_required=[b_arg])
+    move_parser.set_defaults(func=move)
+
+    invert_parser = subparsers.add_parser('invert')
+    invert_parser.add_argument('source', type=str)
+    invert_parser.set_defaults(func=invert)
+
+    args = parser.parse_args()
     args.func(args)
