@@ -1,1 +1,2 @@
-/Users/jonathan/Library/anaconda2/bin/python move_and_link.py "$@"
+#!/usr/bin/env bash
+/usr/bin/env python move_and_link.py "$@"
